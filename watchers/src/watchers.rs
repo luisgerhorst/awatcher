@@ -20,6 +20,8 @@ use async_trait::async_trait;
 use std::{fmt::Display, sync::Arc};
 use tokio::time;
 
+use tokio::time::timeout;
+
 pub enum WatcherType {
     Idle,
     ActiveWindow,
@@ -130,7 +132,7 @@ pub async fn run_first_supported(client: Arc<ReportClient>, watcher_type: &Watch
     if let Some(mut watcher) = supported_watcher {
         info!("Starting {watcher_type} watcher");
         loop {
-            if let Err(e) = watcher.run_iteration(&client).await {
+            if let Err(e) = timeout(watcher_type.sleep_time(&client.config), watcher.run_iteration(&client)).await {
                 error!("Error on {watcher_type} iteration: {e}");
             }
             time::sleep(watcher_type.sleep_time(&client.config)).await;
