@@ -4,6 +4,8 @@ use async_trait::async_trait;
 use serde::Deserialize;
 use std::sync::Arc;
 use zbus::Connection;
+use tokio::time::timeout;
+use std::time::Duration;
 
 use super::{gnome_wayland::load_watcher, gnome_wayland::GnomeWatcher, Watcher};
 
@@ -18,6 +20,8 @@ struct WindowData {
     title: String,
     wm_class: String,
 }
+
+const TIMEOUT: Duration = Duration::from_millis(2000);
 
 impl WindowWatcher {
     async fn get_window_data(&self) -> anyhow::Result<WindowData> {
@@ -46,6 +50,7 @@ impl WindowWatcher {
                     trace!("No window is active");
                     Ok(WindowData::default())
                 } else {
+                    trace!("error = {}", e);
                     Err(e.into())
                 }
             }
@@ -81,12 +86,18 @@ impl WindowWatcher {
 
 impl GnomeWatcher for WindowWatcher {
     async fn load() -> anyhow::Result<Self> {
+        debug!("gnome window watcher load()");
+
         let watcher = Self {
-            dbus_connection: Connection::session().await?,
+            dbus_connection: timeout(TIMEOUT, Connection::session()).await??,
             last_app_id: String::new(),
             last_title: String::new(),
         };
-        watcher.get_window_data().await?;
+
+        debug!("connected: gnome window watcher load()");
+        timeout(TIMEOUT, watcher.get_window_data()).await??;
+
+        debug!("done: gnome window watcher load()");
 
         Ok(watcher)
     }
