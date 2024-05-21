@@ -25,7 +25,7 @@ pub async fn load_watcher<T: GnomeWatcher>() -> anyhow::Result<T> {
     if is_gnome() && is_wayland() {
         debug!("Gnome Wayland detected");
         let mut watcher = Err(anyhow::anyhow!(""));
-        for _ in 0..1 {
+        for _ in 0..3 {
             watcher = T::load().await;
             if let Err(e) = &watcher {
                 debug!("Failed to load Gnome Wayland watcher: {e}");
